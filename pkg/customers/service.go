@@ -37,31 +37,70 @@ func (s *Service)ByID(ctx context.Context,id int64)(*Customer,error) {
 	}
 	return item,nil
 }
-func (s *Service)All(ctx context.Context)([]*Customer,error) {
-	items:=make([]*Customer,0)
-	rows,err:=s.db.QueryContext(ctx,`
-	select id,name,phone,active,created from customers`)
-	if err!=nil {
+
+// All возвращает все данные покупателя.
+func (s *Service) All(ctx context.Context) ([]*Customer, error) {
+
+	// создаём слайс для хранения результатов
+	items := make([]*Customer, 0)
+
+	// делаем сам запрос
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT id, name, phone, active, created FROM customers
+	`)
+
+	// проверяем на ошибки
+	if err != nil {
 		log.Print(err)
-		return nil,ErrInternal
+		return nil, err
 	}
+	// rows нужно закрывать
 	defer rows.Close()
-	for rows.Next(){
-		item:=&Customer{}
-		err=rows.Scan(&item.ID,&item.Name,&item.Phone,&item.Active,&item.Created)
-		if err!=nil {
+
+	// rows.Next() возвращает true до тех пор, пока дальше есть строки
+	for rows.Next() {
+		item := &Customer{}
+		err = rows.Scan(&item.ID, &item.Name, &item.Phone, &item.Active, &item.Created)
+		if err != nil {
 			log.Print(err)
-			return nil,err
+			return nil, err
 		}
 		items = append(items, item)
 	}
-	err=rows.Err()
-	if err!=nil {
+	// в конце нужно проверять общую ошибку
+	err = rows.Err()
+	if err != nil {
 		log.Print(err)
-		return nil,err
+		return nil, err
 	}
-	return items,nil
+
+	return items, nil
 }
+// func (s *Service)All(ctx context.Context)([]*Customer,error) {
+// 	items:=make([]*Customer,0)
+// 	rows,err:=s.db.QueryContext(ctx,`
+// 	select id,name,phone,active,created from customers`)
+// 	if err!=nil {
+// 		log.Print(err)
+// 		return nil,ErrInternal
+// 	}
+// 	defer rows.Close()
+// 	for rows.Next(){
+// 		item:=&Customer{}
+// 		err=rows.Scan(&item.ID,&item.Name,&item.Phone,&item.Active,&item.Created)
+// 		if err!=nil {
+// 			log.Print(err)
+// 			return nil,err
+// 		}
+// 		items = append(items, item)
+// 	}
+// 	err=rows.Err()
+// 	if err!=nil {
+// 		log.Print(err)
+// 		return nil,err
+// 	}
+// 	return items,nil
+// }
 func (s *Service)AllActive(ctx context.Context)([]*Customer,error) {
 	items:=make([]*Customer,0)
 	rows,err:=s.db.QueryContext(ctx,`

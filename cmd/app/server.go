@@ -59,30 +59,47 @@ func (s *Server)handleGetCustomersByID(writer http.ResponseWriter,request *http.
 		log.Print(err)
 	}
 }
-
-func (s *Server)handleGetAll(writer http.ResponseWriter,request *http.Request)  {	
-	items,err:=s.customersSvc.All(request.Context())
-	if errors.Is(err,customers.ErrNotFound) {
-		http.Error(writer,http.StatusText(http.StatusNotFound),http.StatusNotFound)
+func (s *Server) handleGetAll(writer http.ResponseWriter, request *http.Request) {
+	all, err := s.customersSvc.All(request.Context())
+	if err != nil {
+		log.Print(err)
+		http.Error(writer, http.StatusText(http.StatusNotImplemented), http.StatusNotImplemented)
 		return
 	}
-	if err!=nil {
-		http.Error(writer,http.StatusText(http.StatusBadRequest),http.StatusBadRequest)
-		return		
-	}
-	
-	data,derr:=json.Marshal(items)
-	if derr!=nil {
-		log.Print(derr)
-		http.Error(writer,http.StatusText(http.StatusInternalServerError),http.StatusInternalServerError)
-		return				
-	}
-	writer.Header().Set("Content-Type","aplication/json")
-	_,err=writer.Write(data)
-	if err!=nil {
+	data, err := json.Marshal(all)
+	if err != nil {
 		log.Print(err)
+		http.Error(writer, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+	_, err = writer.Write([]byte(data))
+	if err != nil {
+		log.Print("Error!: Can't write anything on data.")
 	}
 }
+// func (s *Server)handleGetAll(writer http.ResponseWriter,request *http.Request)  {	
+// 	items,err:=s.customersSvc.All(request.Context())
+// 	if errors.Is(err,customers.ErrNotFound) {
+// 		http.Error(writer,http.StatusText(http.StatusNotFound),http.StatusNotFound)
+// 		return
+// 	}
+// 	if err!=nil {
+// 		http.Error(writer,http.StatusText(http.StatusBadRequest),http.StatusBadRequest)
+// 		return		
+// 	}
+	
+// 	data,derr:=json.Marshal(items)
+// 	if derr!=nil {
+// 		log.Print(derr)
+// 		http.Error(writer,http.StatusText(http.StatusInternalServerError),http.StatusInternalServerError)
+// 		return				
+// 	}
+// 	writer.Header().Set("Content-Type","aplication/json")
+// 	_,err=writer.Write(data)
+// 	if err!=nil {
+// 		log.Print(err)
+// 	}
+// }
 func (s *Server)handleGetAllActive(writer http.ResponseWriter,request *http.Request)  {	
 	items,err:=s.customersSvc.AllActive(request.Context())
 	if errors.Is(err,customers.ErrNotFound) {
