@@ -45,14 +45,10 @@ func (s *Service)All(ctx context.Context)([]*Customer,error) {
 		log.Print(err)
 		return nil,ErrInternal
 	}
-	defer func() {
-		if cerr:=rows.Close();err!=nil {
-			log.Print(cerr)
-		}
-	}()
+	defer rows.Close()
 	for rows.Next(){
 		item:=&Customer{}
-		err:=rows.Scan(&item.ID,&item.Name,&item.Phone,&item.Active,&item.Created)
+		err=rows.Scan(&item.ID,&item.Name,&item.Phone,&item.Active,&item.Created)
 		if err!=nil {
 			log.Print(err)
 			return nil,err
@@ -74,14 +70,10 @@ func (s *Service)AllActive(ctx context.Context)([]*Customer,error) {
 		log.Print(err)
 		return nil,ErrInternal
 	}
-	defer func() {
-		if cerr:=rows.Close();err!=nil {
-			log.Print(cerr)
-		}
-	}()
+	defer rows.Close()
 	for rows.Next(){
 		item:=&Customer{}
-		err:=rows.Scan(&item.ID,&item.Name,&item.Phone,&item.Active,&item.Created)
+		err=rows.Scan(&item.ID,&item.Name,&item.Phone,&item.Active,&item.Created)
 		if err!=nil {
 			log.Print(err)
 			return nil,err
@@ -95,16 +87,28 @@ func (s *Service)AllActive(ctx context.Context)([]*Customer,error) {
 	}
 	return items,nil
 }
-func (s *Service)Save(ctx context.Context,name string,phone string)(*Customer,error) {
+func (s *Service)Save(ctx context.Context,id int64,name string,phone string)(*Customer,error) {
 	item:=&Customer{}
-	err:=s.db.QueryRowContext(ctx,`
-	insert into customers(name,phone) values($1,$2) 
-	on conflict(phone) do update set name=excluded.name 
-	RETURNING id,name,phone,active,created;
-	`,name,phone).Scan(&item.ID,&item.Name,&item.Phone,&item.Active,&item.Created)
-	if err!=nil {
-		log.Print(err)
-		return nil,ErrInternal
+	if id==0 {			
+		err:=s.db.QueryRowContext(ctx,`
+		insert into customers(name,phone) values($1,$2) 
+		on conflict(phone) do update set name=excluded.name 
+		RETURNING id,name,phone,active,created;
+		`,name,phone).Scan(&item.ID,&item.Name,&item.Phone,&item.Active,&item.Created)
+		if err!=nil {
+			log.Print(err)
+			return nil,ErrInternal
+		}
+	}else{
+		err:=s.db.QueryRowContext(ctx,`
+		update customers set name=$2,phone=$3
+		where id=$1
+		RETURNING id,name,phone,active,created;
+		`,id,name,phone).Scan(&item.ID,&item.Name,&item.Phone,&item.Active,&item.Created)
+		if err!=nil {
+			log.Print(err)
+			return nil,ErrInternal
+		}
 	}
 	return item,nil
 }

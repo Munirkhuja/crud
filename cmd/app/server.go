@@ -116,14 +116,22 @@ func (s *Server)handleSave(writer http.ResponseWriter,request *http.Request)  {
 	}
 	postForm:=request.PostForm
 	name,phone:="",""
-
+	idParam,exists:=postForm["id"]
+	if !exists {
+		idParam=[]string{"0"}
+	}
+	id,pierr:=strconv.ParseInt(idParam[0],10,64)
+	if pierr!=nil {
+		id=0
+		log.Print(pierr)
+	}
 	if nameParam,exists:=postForm["name"];exists {
 		name=nameParam[0]
 	}
 	if phoneParam,exists:=postForm["phone"];exists {
 		phone=phoneParam[0]
 	}
-	item,err:=s.customersSvc.Save(request.Context(),name,phone)
+	item,err:=s.customersSvc.Save(request.Context(),id,name,phone)
 	if errors.Is(err,customers.ErrNotFound) {
 		http.Error(writer,http.StatusText(http.StatusNotFound),http.StatusNotFound)
 		return
