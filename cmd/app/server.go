@@ -59,47 +59,29 @@ func (s *Server)handleGetCustomersByID(writer http.ResponseWriter,request *http.
 		log.Print(err)
 	}
 }
-func (s *Server) handleGetAll(writer http.ResponseWriter, request *http.Request) {
-	all, err := s.customersSvc.All(request.Context())
-	if err != nil {
-		log.Print(err)
-		http.Error(writer, http.StatusText(http.StatusNotImplemented), http.StatusNotImplemented)
+func (s *Server)handleGetAll(writer http.ResponseWriter,request *http.Request)  {	
+	items,err:=s.customersSvc.All(request.Context())
+	if errors.Is(err,customers.ErrNotFound) {
+		http.Error(writer,http.StatusText(http.StatusNotFound),http.StatusNotFound)
 		return
 	}
-	data, err := json.Marshal(all)
-	if err != nil {
-		log.Print(err)
-		http.Error(writer, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		return
+	if err!=nil {
+		http.Error(writer,http.StatusText(http.StatusBadRequest),http.StatusBadRequest)
+		return		
 	}
-	_, err = writer.Write([]byte(data))
-	if err != nil {
-		log.Print("Error!: Can't write anything on data.")
+	
+	data,derr:=json.Marshal(items)
+	if derr!=nil {
+		log.Print(derr)
+		http.Error(writer,http.StatusText(http.StatusInternalServerError),http.StatusInternalServerError)
+		return				
+	}
+	writer.Header().Set("Content-Type","aplication/json")
+	_,err=writer.Write(data)
+	if err!=nil {
+		log.Print(err)
 	}
 }
-// func (s *Server)handleGetAll(writer http.ResponseWriter,request *http.Request)  {	
-// 	items,err:=s.customersSvc.All(request.Context())
-// 	if errors.Is(err,customers.ErrNotFound) {
-// 		http.Error(writer,http.StatusText(http.StatusNotFound),http.StatusNotFound)
-// 		return
-// 	}
-// 	if err!=nil {
-// 		http.Error(writer,http.StatusText(http.StatusBadRequest),http.StatusBadRequest)
-// 		return		
-// 	}
-	
-// 	data,derr:=json.Marshal(items)
-// 	if derr!=nil {
-// 		log.Print(derr)
-// 		http.Error(writer,http.StatusText(http.StatusInternalServerError),http.StatusInternalServerError)
-// 		return				
-// 	}
-// 	writer.Header().Set("Content-Type","aplication/json")
-// 	_,err=writer.Write(data)
-// 	if err!=nil {
-// 		log.Print(err)
-// 	}
-// }
 func (s *Server)handleGetAllActive(writer http.ResponseWriter,request *http.Request)  {	
 	items,err:=s.customersSvc.AllActive(request.Context())
 	if errors.Is(err,customers.ErrNotFound) {
@@ -124,29 +106,16 @@ func (s *Server)handleGetAllActive(writer http.ResponseWriter,request *http.Requ
 	}
 }
 
-func (s *Server)handleSave(writer http.ResponseWriter,request *http.Request)  {
-	parseerr:=request.ParseMultipartForm(10*1024*1024)
-	if parseerr!=nil {
-		log.Print(parseerr)
-		http.Error(writer,http.StatusText(http.StatusInternalServerError),http.StatusInternalServerError)
+func (s *Server)handleSave(writer http.ResponseWriter,request *http.Request)  {	
+	idParam := request.FormValue("id")
+	name := request.FormValue("name")
+	phone := request.FormValue("phone")
+
+	id, err := strconv.ParseInt(idParam, 10, 64)
+	if err != nil {
+		log.Print(err)
+		http.Error(writer, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
-	}
-	postForm:=request.PostForm
-	name,phone:="",""
-	idParam,exists:=postForm["id"]
-	if !exists {
-		idParam=[]string{"0"}
-	}
-	id,pierr:=strconv.ParseInt(idParam[0],10,64)
-	if pierr!=nil {
-		id=0
-		log.Print(pierr)
-	}
-	if nameParam,exists:=postForm["name"];exists {
-		name=nameParam[0]
-	}
-	if phoneParam,exists:=postForm["phone"];exists {
-		phone=phoneParam[0]
 	}
 	item,err:=s.customersSvc.Save(request.Context(),id,name,phone)
 	if errors.Is(err,customers.ErrNotFound) {
